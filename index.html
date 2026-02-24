@@ -1,0 +1,948 @@
+<!doctype html>
+<html lang="en" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Enterprise Architecture Explorer</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Space Grotesk', sans-serif; }
+    .mono { font-family: 'JetBrains Mono', monospace; }
+    
+    .gradient-bg {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+    }
+    
+    .card-glow:hover {
+      box-shadow: 0 0 30px rgba(99, 102, 241, 0.3);
+    }
+    
+    .zachman-cell {
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    
+    .zachman-cell:hover {
+      transform: scale(1.05);
+      z-index: 10;
+    }
+    
+    .togaf-phase {
+      transition: all 0.4s ease;
+    }
+    
+    .togaf-phase:hover {
+      transform: scale(1.1);
+    }
+    
+    .archimate-layer {
+      transition: all 0.3s ease;
+    }
+    
+    .archimate-layer:hover {
+      transform: translateX(10px);
+    }
+    
+    .pulse-glow {
+      animation: pulseGlow 2s infinite;
+    }
+    
+    @keyframes pulseGlow {
+      0%, 100% { box-shadow: 0 0 5px currentColor; }
+      50% { box-shadow: 0 0 20px currentColor; }
+    }
+    
+    .float-animation {
+      animation: float 3s ease-in-out infinite;
+    }
+    
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+    
+    .score-pop {
+      animation: scorePop 0.5s ease;
+    }
+    
+    @keyframes scorePop {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.3); }
+      100% { transform: scale(1); }
+    }
+    
+    .confetti {
+      position: fixed;
+      width: 10px;
+      height: 10px;
+      pointer-events: none;
+      animation: confettiFall 3s ease-out forwards;
+    }
+    
+    @keyframes confettiFall {
+      0% { transform: translateY(-100px) rotate(0deg); opacity: 1; }
+      100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+    }
+    
+    .tooltip {
+      position: absolute;
+      background: #1e293b;
+      border: 2px solid #6366f1;
+      border-radius: 12px;
+      padding: 12px 16px;
+      max-width: 280px;
+      z-index: 100;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: all 0.3s ease;
+      pointer-events: none;
+    }
+    
+    .tooltip.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .tab-btn {
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .tab-btn::after {
+      content: '';
+      position: absolute;
+      bottom: 0;
+      left: 50%;
+      width: 0;
+      height: 3px;
+      background: #6366f1;
+      transition: all 0.3s ease;
+      transform: translateX(-50%);
+    }
+    
+    .tab-btn.active::after {
+      width: 100%;
+    }
+
+    .progress-ring {
+      transform: rotate(-90deg);
+    }
+    
+    .quiz-option {
+      transition: all 0.2s ease;
+    }
+    
+    .quiz-option:hover:not(.disabled) {
+      transform: translateX(5px);
+      border-color: #6366f1;
+    }
+    
+    .quiz-option.correct {
+      background: rgba(34, 197, 94, 0.2);
+      border-color: #22c55e;
+    }
+    
+    .quiz-option.incorrect {
+      background: rgba(239, 68, 68, 0.2);
+      border-color: #ef4444;
+    }
+  </style>
+  <style>body { box-sizing: border-box; }</style>
+  <script src="/_sdk/data_sdk.js" type="text/javascript"></script>
+ </head>
+ <body class="h-full gradient-bg text-white overflow-auto">
+  <div id="app" class="min-h-full w-full"><!-- Header -->
+   <header class="p-4 md:p-6 border-b border-slate-700/50">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+     <div class="flex items-center gap-3">
+      <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center float-animation"><span class="text-2xl">🏗️</span>
+      </div>
+      <div>
+       <h1 id="main-title" class="text-xl md:text-2xl font-bold bg-gradient-to-r from-indigo-400 to-purple-400 bg-clip-text text-transparent">Enterprise Architecture Explorer</h1>
+       <p id="welcome-message" class="text-slate-400 text-sm">Learn enterprise architecture frameworks!</p>
+      </div>
+     </div>
+     <div class="flex items-center gap-4">
+      <div class="flex items-center gap-2 bg-slate-800/50 px-4 py-2 rounded-full"><span class="text-yellow-400">⭐</span> <span id="score" class="font-bold mono">0</span> <span class="text-slate-400 text-sm">points</span>
+      </div>
+      <div class="flex items-center gap-2 bg-slate-800/50 px-4 py-2 rounded-full"><span class="text-emerald-400">🎯</span> <span id="streak" class="font-bold mono">0</span> <span class="text-slate-400 text-sm">streak</span>
+      </div>
+     </div>
+    </div>
+   </header><!-- Navigation Tabs -->
+   <nav class="sticky top-0 z-50 bg-slate-900/80 backdrop-blur-sm border-b border-slate-700/50">
+    <div class="max-w-7xl mx-auto flex overflow-x-auto"><button class="tab-btn active flex-1 min-w-max px-6 py-4 text-center font-medium transition-colors hover:text-indigo-400" data-tab="home"> 🏠 Home </button> <button class="tab-btn flex-1 min-w-max px-6 py-4 text-center font-medium transition-colors hover:text-indigo-400" data-tab="zachman"> 📊 Zachman </button> <button class="tab-btn flex-1 min-w-max px-6 py-4 text-center font-medium transition-colors hover:text-indigo-400" data-tab="togaf"> 🔄 TOGAF </button> <button class="tab-btn flex-1 min-w-max px-6 py-4 text-center font-medium transition-colors hover:text-indigo-400" data-tab="archimate"> 🎨 ArchiMate </button> <button class="tab-btn flex-1 min-w-max px-6 py-4 text-center font-medium transition-colors hover:text-indigo-400" data-tab="quiz"> 🎮 Quiz </button>
+    </div>
+   </nav><!-- Main Content -->
+   <main class="max-w-7xl mx-auto p-4 md:p-6"><!-- Home Tab -->
+    <section id="home-section" class="tab-content">
+     <div class="text-center mb-8">
+      <h2 class="text-3xl md:text-4xl font-bold mb-4">Welcome, Future Architect! 👋</h2>
+      <p class="text-slate-300 text-lg max-w-2xl mx-auto">Explore three powerful frameworks that help organizations design and manage their enterprise architecture.</p>
+     </div>
+     <div class="grid md:grid-cols-3 gap-6"><!-- Zachman Card -->
+      <div class="bg-slate-800/50 rounded-2xl p-6 border border-slate-700 card-glow cursor-pointer transition-all hover:border-indigo-500" onclick="switchTab('zachman')">
+       <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center mb-4 text-3xl">
+        📊
+       </div>
+       <h3 class="text-xl font-bold mb-2">Zachman Framework</h3>
+       <p class="text-slate-400 mb-4">A 6x6 matrix that organizes enterprise architecture by perspectives and questions.</p>
+       <div class="flex items-center gap-2 text-blue-400"><span>Explore the Matrix</span> <span>→</span>
+       </div>
+      </div><!-- TOGAF Card -->
+      <div class="bg-slate-800/50 rounded-2xl p-6 border border-slate-700 card-glow cursor-pointer transition-all hover:border-purple-500" onclick="switchTab('togaf')">
+       <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center mb-4 text-3xl">
+        🔄
+       </div>
+       <h3 class="text-xl font-bold mb-2">TOGAF ADM</h3>
+       <p class="text-slate-400 mb-4">Architecture Development Method - a step-by-step approach to developing enterprise architecture.</p>
+       <div class="flex items-center gap-2 text-purple-400"><span>Walk the Cycle</span> <span>→</span>
+       </div>
+      </div><!-- ArchiMate Card -->
+      <div class="bg-slate-800/50 rounded-2xl p-6 border border-slate-700 card-glow cursor-pointer transition-all hover:border-emerald-500" onclick="switchTab('archimate')">
+       <div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center mb-4 text-3xl">
+        🎨
+       </div>
+       <h3 class="text-xl font-bold mb-2">ArchiMate</h3>
+       <p class="text-slate-400 mb-4">A visual modeling language for describing, analyzing, and visualizing architecture.</p>
+       <div class="flex items-center gap-2 text-emerald-400"><span>Design &amp; Create</span> <span>→</span>
+       </div>
+      </div>
+     </div><!-- Quick Comparison -->
+     <div class="mt-10 bg-slate-800/30 rounded-2xl p-6 border border-slate-700">
+      <h3 class="text-xl font-bold mb-4 text-center">🔍 Quick Comparison</h3>
+      <div class="overflow-x-auto">
+       <table class="w-full text-left">
+        <thead>
+         <tr class="border-b border-slate-600">
+          <th class="py-3 px-4 text-indigo-400">Aspect</th>
+          <th class="py-3 px-4 text-blue-400">Zachman</th>
+          <th class="py-3 px-4 text-purple-400">TOGAF</th>
+          <th class="py-3 px-4 text-emerald-400">ArchiMate</th>
+         </tr>
+        </thead>
+        <tbody class="text-slate-300">
+         <tr class="border-b border-slate-700/50">
+          <td class="py-3 px-4 font-medium">Type</td>
+          <td class="py-3 px-4">Classification Schema</td>
+          <td class="py-3 px-4">Process/Method</td>
+          <td class="py-3 px-4">Modeling Language</td>
+         </tr>
+         <tr class="border-b border-slate-700/50">
+          <td class="py-3 px-4 font-medium">Purpose</td>
+          <td class="py-3 px-4">Organize artifacts</td>
+          <td class="py-3 px-4">Develop architecture</td>
+          <td class="py-3 px-4">Visualize architecture</td>
+         </tr>
+         <tr>
+          <td class="py-3 px-4 font-medium">Metaphor</td>
+          <td class="py-3 px-4">📁 Filing Cabinet</td>
+          <td class="py-3 px-4">🗺️ Roadmap</td>
+          <td class="py-3 px-4">🎨 Paint Palette</td>
+         </tr>
+        </tbody>
+       </table>
+      </div>
+     </div>
+    </section><!-- Zachman Tab -->
+    <section id="zachman-section" class="tab-content hidden">
+     <div class="mb-6">
+      <h2 class="text-2xl md:text-3xl font-bold mb-2">📊 Zachman Framework</h2>
+      <p class="text-slate-400">Click on any cell to learn more! Think of it as the "Periodic Table" of Enterprise Architecture.</p>
+     </div><!-- Interactive Matrix -->
+     <div class="overflow-x-auto bg-slate-800/30 rounded-2xl p-4 border border-slate-700">
+      <div class="min-w-[800px]"><!-- Header Row -->
+       <div class="grid grid-cols-7 gap-2 mb-2">
+        <div class="p-2 text-center font-bold text-slate-500">
+         Perspectives ↓
+        </div>
+        <div class="p-2 text-center font-bold text-yellow-400 text-sm">
+         What<br><span class="text-xs text-slate-400">Data</span>
+        </div>
+        <div class="p-2 text-center font-bold text-orange-400 text-sm">
+         How<br><span class="text-xs text-slate-400">Function</span>
+        </div>
+        <div class="p-2 text-center font-bold text-red-400 text-sm">
+         Where<br><span class="text-xs text-slate-400">Network</span>
+        </div>
+        <div class="p-2 text-center font-bold text-pink-400 text-sm">
+         Who<br><span class="text-xs text-slate-400">People</span>
+        </div>
+        <div class="p-2 text-center font-bold text-purple-400 text-sm">
+         When<br><span class="text-xs text-slate-400">Time</span>
+        </div>
+        <div class="p-2 text-center font-bold text-indigo-400 text-sm">
+         Why<br><span class="text-xs text-slate-400">Motivation</span>
+        </div>
+       </div><!-- Matrix Rows -->
+       <div id="zachman-matrix"></div>
+      </div>
+     </div><!-- Selected Cell Info -->
+     <div id="zachman-info" class="mt-6 bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl p-6 border border-indigo-500/30 hidden">
+      <div class="flex items-start gap-4">
+       <div id="zachman-icon" class="w-16 h-16 rounded-xl bg-indigo-500/20 flex items-center justify-center text-3xl shrink-0">
+        📋
+       </div>
+       <div>
+        <h3 id="zachman-title" class="text-xl font-bold text-indigo-400"></h3>
+        <p id="zachman-perspective" class="text-slate-400 mb-2"></p>
+        <p id="zachman-description" class="text-slate-300"></p>
+        <div id="zachman-example" class="mt-3 p-3 bg-slate-800/50 rounded-lg border border-slate-700"><span class="text-emerald-400 font-medium">Example: </span> <span class="text-slate-300"></span>
+        </div>
+       </div>
+      </div>
+     </div>
+    </section><!-- TOGAF Tab -->
+    <section id="togaf-section" class="tab-content hidden">
+     <div class="mb-6">
+      <h2 class="text-2xl md:text-3xl font-bold mb-2">🔄 TOGAF ADM Cycle</h2>
+      <p class="text-slate-400">Click on each phase to learn about the Architecture Development Method!</p>
+     </div><!-- ADM Wheel -->
+     <div class="flex flex-col lg:flex-row items-center gap-8">
+      <div class="relative w-full max-w-lg aspect-square"><!-- Center -->
+       <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center cursor-pointer togaf-phase z-10" data-phase="requirements">
+        <div class="text-center"><span class="text-2xl">🎯</span>
+         <p class="text-xs font-bold mt-1">Requirements</p>
+        </div>
+       </div><!-- Phases around the circle -->
+       <div id="togaf-wheel" class="w-full h-full relative"></div>
+      </div><!-- Phase Info -->
+      <div id="togaf-info" class="flex-1 bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl p-6 border border-purple-500/30">
+       <div id="togaf-content">
+        <div class="text-center py-8"><span class="text-6xl mb-4 block">👆</span>
+         <p class="text-slate-400 text-lg">Click on a phase to learn more!</p>
+        </div>
+       </div>
+      </div>
+     </div><!-- Phase Progress -->
+     <div class="mt-8 bg-slate-800/30 rounded-2xl p-6 border border-slate-700">
+      <h3 class="font-bold mb-4">📚 Learning Progress</h3>
+      <div id="togaf-progress" class="grid grid-cols-5 md:grid-cols-10 gap-2"></div>
+     </div>
+    </section><!-- ArchiMate Tab -->
+    <section id="archimate-section" class="tab-content hidden">
+     <div class="mb-6">
+      <h2 class="text-2xl md:text-3xl font-bold mb-2">🎨 ArchiMate Modeling</h2>
+      <p class="text-slate-400">Explore the three layers and their elements. Drag elements to the canvas to build your model!</p>
+     </div>
+     <div class="grid lg:grid-cols-2 gap-6"><!-- Layers Panel -->
+      <div class="space-y-4"><!-- Business Layer -->
+       <div class="archimate-layer bg-gradient-to-r from-yellow-500/20 to-yellow-600/10 rounded-2xl p-4 border border-yellow-500/30 cursor-pointer" data-layer="business">
+        <div class="flex items-center gap-3 mb-3">
+         <div class="w-10 h-10 rounded-lg bg-yellow-500 flex items-center justify-center text-xl">
+          💼
+         </div>
+         <div>
+          <h3 class="font-bold text-yellow-400">Business Layer</h3>
+          <p class="text-sm text-slate-400">Products, services, processes</p>
+         </div>
+        </div>
+        <div id="business-elements" class="grid grid-cols-3 gap-2"></div>
+       </div><!-- Application Layer -->
+       <div class="archimate-layer bg-gradient-to-r from-blue-500/20 to-blue-600/10 rounded-2xl p-4 border border-blue-500/30 cursor-pointer" data-layer="application">
+        <div class="flex items-center gap-3 mb-3">
+         <div class="w-10 h-10 rounded-lg bg-blue-500 flex items-center justify-center text-xl">
+          💻
+         </div>
+         <div>
+          <h3 class="font-bold text-blue-400">Application Layer</h3>
+          <p class="text-sm text-slate-400">Software applications, data</p>
+         </div>
+        </div>
+        <div id="application-elements" class="grid grid-cols-3 gap-2"></div>
+       </div><!-- Technology Layer -->
+       <div class="archimate-layer bg-gradient-to-r from-emerald-500/20 to-emerald-600/10 rounded-2xl p-4 border border-emerald-500/30 cursor-pointer" data-layer="technology">
+        <div class="flex items-center gap-3 mb-3">
+         <div class="w-10 h-10 rounded-lg bg-emerald-500 flex items-center justify-center text-xl">
+          🖥️
+         </div>
+         <div>
+          <h3 class="font-bold text-emerald-400">Technology Layer</h3>
+          <p class="text-sm text-slate-400">Infrastructure, hardware</p>
+         </div>
+        </div>
+        <div id="technology-elements" class="grid grid-cols-3 gap-2"></div>
+       </div>
+      </div><!-- Canvas Area -->
+      <div class="bg-slate-800/30 rounded-2xl p-4 border border-slate-700">
+       <div class="flex items-center justify-between mb-4">
+        <h3 class="font-bold">🎯 Your Model Canvas</h3><button onclick="clearCanvas()" class="px-3 py-1 bg-red-500/20 text-red-400 rounded-lg text-sm hover:bg-red-500/30 transition-colors"> Clear Canvas </button>
+       </div>
+       <div id="model-canvas" class="min-h-[300px] bg-slate-900/50 rounded-xl border-2 border-dashed border-slate-600 p-4 relative">
+        <p id="canvas-placeholder" class="text-center text-slate-500 py-12">Click elements above to add them here!</p>
+       </div>
+      </div>
+     </div><!-- Element Info -->
+     <div id="archimate-info" class="mt-6 bg-gradient-to-br from-slate-800/50 to-slate-900/50 rounded-2xl p-6 border border-emerald-500/30 hidden">
+      <div id="archimate-content"></div>
+     </div>
+    </section><!-- Quiz Tab -->
+    <section id="quiz-section" class="tab-content hidden">
+     <div class="mb-6">
+      <h2 class="text-2xl md:text-3xl font-bold mb-2">🎮 Test Your Knowledge!</h2>
+      <p class="text-slate-400">Answer questions about all three frameworks. Earn points and build your streak!</p>
+     </div>
+     <div class="max-w-2xl mx-auto"><!-- Quiz Card -->
+      <div class="bg-slate-800/50 rounded-2xl p-6 border border-slate-700"><!-- Progress Bar -->
+       <div class="flex items-center gap-4 mb-6">
+        <div class="flex-1 h-2 bg-slate-700 rounded-full overflow-hidden">
+         <div id="quiz-progress-bar" class="h-full bg-gradient-to-r from-indigo-500 to-purple-500 transition-all duration-500" style="width: 0%"></div>
+        </div><span id="quiz-count" class="text-slate-400 mono text-sm">0/10</span>
+       </div><!-- Question -->
+       <div id="quiz-question-area">
+        <div class="mb-4"><span id="quiz-framework" class="px-3 py-1 rounded-full text-sm font-medium"></span>
+        </div>
+        <h3 id="quiz-question" class="text-xl font-bold mb-6"></h3>
+        <div id="quiz-options" class="space-y-3"></div>
+       </div><!-- Results -->
+       <div id="quiz-results" class="hidden text-center py-8">
+        <div class="text-6xl mb-4">
+         🎉
+        </div>
+        <h3 class="text-2xl font-bold mb-2">Quiz Complete!</h3>
+        <p id="quiz-score-text" class="text-slate-400 text-lg mb-4"></p><button onclick="restartQuiz()" class="px-6 py-3 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-xl font-bold hover:opacity-90 transition-opacity"> Try Again 🔄 </button>
+       </div>
+      </div><!-- Quick Stats -->
+      <div class="grid grid-cols-3 gap-4 mt-6">
+       <div class="bg-slate-800/30 rounded-xl p-4 text-center border border-slate-700">
+        <div class="text-2xl mb-1">
+         ✅
+        </div>
+        <div id="correct-count" class="text-2xl font-bold text-emerald-400">
+         0
+        </div>
+        <div class="text-slate-400 text-sm">
+         Correct
+        </div>
+       </div>
+       <div class="bg-slate-800/30 rounded-xl p-4 text-center border border-slate-700">
+        <div class="text-2xl mb-1">
+         ❌
+        </div>
+        <div id="incorrect-count" class="text-2xl font-bold text-red-400">
+         0
+        </div>
+        <div class="text-slate-400 text-sm">
+         Incorrect
+        </div>
+       </div>
+       <div class="bg-slate-800/30 rounded-xl p-4 text-center border border-slate-700">
+        <div class="text-2xl mb-1">
+         🔥
+        </div>
+        <div id="best-streak" class="text-2xl font-bold text-yellow-400">
+         0
+        </div>
+        <div class="text-slate-400 text-sm">
+         Best Streak
+        </div>
+       </div>
+      </div>
+     </div>
+    </section>
+   </main>
+  </div>
+  <script>
+    // Default config
+    const defaultConfig = {
+      main_title: 'Enterprise Architecture Explorer',
+      welcome_message: 'Learn enterprise architecture frameworks!',
+      background_color: '#0f172a',
+      surface_color: '#1e293b',
+      text_color: '#e2e8f0',
+      primary_action: '#6366f1',
+      secondary_action: '#a855f7'
+    };
+
+    let config = { ...defaultConfig };
+
+    // Initialize Element SDK
+    window.elementSdk.init({
+      defaultConfig,
+      onConfigChange: async (newConfig) => {
+        config = { ...defaultConfig, ...newConfig };
+        document.getElementById('main-title').textContent = config.main_title;
+        document.getElementById('welcome-message').textContent = config.welcome_message;
+        document.body.style.setProperty('--bg-color', config.background_color);
+        document.body.style.setProperty('--surface-color', config.surface_color);
+      },
+      mapToCapabilities: (config) => ({
+        recolorables: [
+          {
+            get: () => config.background_color || defaultConfig.background_color,
+            set: (v) => window.elementSdk.setConfig({ background_color: v })
+          },
+          {
+            get: () => config.surface_color || defaultConfig.surface_color,
+            set: (v) => window.elementSdk.setConfig({ surface_color: v })
+          },
+          {
+            get: () => config.text_color || defaultConfig.text_color,
+            set: (v) => window.elementSdk.setConfig({ text_color: v })
+          },
+          {
+            get: () => config.primary_action || defaultConfig.primary_action,
+            set: (v) => window.elementSdk.setConfig({ primary_action: v })
+          },
+          {
+            get: () => config.secondary_action || defaultConfig.secondary_action,
+            set: (v) => window.elementSdk.setConfig({ secondary_action: v })
+          }
+        ],
+        borderables: [],
+        fontEditable: undefined,
+        fontSizeable: undefined
+      }),
+      mapToEditPanelValues: (config) => new Map([
+        ['main_title', config.main_title || defaultConfig.main_title],
+        ['welcome_message', config.welcome_message || defaultConfig.welcome_message]
+      ])
+    });
+
+    // Game State
+    let gameState = {
+      score: 0,
+      streak: 0,
+      bestStreak: 0,
+      correctAnswers: 0,
+      incorrectAnswers: 0,
+      currentQuestion: 0,
+      exploredPhases: new Set(),
+      canvasElements: []
+    };
+
+    // Zachman Framework Data
+    const zachmanData = {
+      perspectives: [
+        { name: 'Planner', icon: '🎯', color: 'from-blue-600 to-blue-700' },
+        { name: 'Owner', icon: '👔', color: 'from-cyan-600 to-cyan-700' },
+        { name: 'Designer', icon: '📐', color: 'from-teal-600 to-teal-700' },
+        { name: 'Builder', icon: '🔧', color: 'from-emerald-600 to-emerald-700' },
+        { name: 'Implementer', icon: '💻', color: 'from-green-600 to-green-700' },
+        { name: 'User', icon: '👤', color: 'from-lime-600 to-lime-700' }
+      ],
+      questions: ['What', 'How', 'Where', 'Who', 'When', 'Why'],
+      cells: {
+        'Planner-What': { title: 'Business Entities', desc: 'High-level data concepts important to business', example: 'Customer, Product, Order' },
+        'Planner-How': { title: 'Business Processes', desc: 'Core business functions', example: 'Sales process, Manufacturing' },
+        'Planner-Where': { title: 'Business Locations', desc: 'Geographic distribution', example: 'Regional offices, Markets' },
+        'Planner-Who': { title: 'Business Units', desc: 'Organizational structure', example: 'Departments, Teams' },
+        'Planner-When': { title: 'Business Cycles', desc: 'Business timing', example: 'Fiscal year, Quarters' },
+        'Planner-Why': { title: 'Business Goals', desc: 'Strategic objectives', example: 'Increase market share' },
+        'Owner-What': { title: 'Business Data Model', desc: 'Semantic data relationships', example: 'Entity-relationship diagrams' },
+        'Owner-How': { title: 'Business Process Model', desc: 'Process workflows', example: 'BPMN diagrams' },
+        'Owner-Where': { title: 'Business Logistics', desc: 'Distribution network', example: 'Supply chain nodes' },
+        'Owner-Who': { title: 'Work Flow Model', desc: 'Role assignments', example: 'RACI matrices' },
+        'Owner-When': { title: 'Master Schedule', desc: 'Event timelines', example: 'Project milestones' },
+        'Owner-Why': { title: 'Business Plan', desc: 'Strategy execution', example: 'Business cases' },
+        'Designer-What': { title: 'Logical Data Model', desc: 'Normalized data design', example: 'Database schemas' },
+        'Designer-How': { title: 'Application Architecture', desc: 'System functions', example: 'Use case diagrams' },
+        'Designer-Where': { title: 'System Architecture', desc: 'Network topology', example: 'Network diagrams' },
+        'Designer-Who': { title: 'Interface Architecture', desc: 'User interfaces', example: 'Screen layouts' },
+        'Designer-When': { title: 'Processing Structure', desc: 'Event processing', example: 'State diagrams' },
+        'Designer-Why': { title: 'Rule Design', desc: 'Business rules', example: 'Decision tables' },
+        'Builder-What': { title: 'Physical Data Model', desc: 'Database implementation', example: 'Table definitions' },
+        'Builder-How': { title: 'System Design', desc: 'Program specifications', example: 'Class diagrams' },
+        'Builder-Where': { title: 'Technology Architecture', desc: 'Hardware/software specs', example: 'Server configurations' },
+        'Builder-Who': { title: 'Security Architecture', desc: 'Access control', example: 'Permission schemas' },
+        'Builder-When': { title: 'Timing Definition', desc: 'System timing', example: 'Sequence diagrams' },
+        'Builder-Why': { title: 'Rule Specification', desc: 'Implementation rules', example: 'Validation logic' },
+        'Implementer-What': { title: 'Data Definition', desc: 'Actual data structures', example: 'DDL scripts' },
+        'Implementer-How': { title: 'Programs', desc: 'Executable code', example: 'Source code' },
+        'Implementer-Where': { title: 'Network Architecture', desc: 'Deployed infrastructure', example: 'IP addresses' },
+        'Implementer-Who': { title: 'Security Config', desc: 'User accounts', example: 'User credentials' },
+        'Implementer-When': { title: 'Timing Programs', desc: 'Scheduled jobs', example: 'Cron jobs' },
+        'Implementer-Why': { title: 'Rule Programs', desc: 'Coded business rules', example: 'Stored procedures' },
+        'User-What': { title: 'Usable Data', desc: 'Data in use', example: 'Live database' },
+        'User-How': { title: 'Working Functions', desc: 'Running applications', example: 'Production systems' },
+        'User-Where': { title: 'Usable Network', desc: 'Operational network', example: 'Live infrastructure' },
+        'User-Who': { title: 'Functioning Org', desc: 'Operating organization', example: 'Active users' },
+        'User-When': { title: 'Implemented Schedule', desc: 'Real-time operations', example: 'Live transactions' },
+        'User-Why': { title: 'Working Strategy', desc: 'Achieved goals', example: 'KPI dashboards' }
+      }
+    };
+
+    // TOGAF ADM Phases
+    const togafPhases = [
+      { id: 'preliminary', name: 'Preliminary', icon: '🚀', color: '#f59e0b', desc: 'Preparation and initiation activities', details: 'Define architecture principles, establish governance, identify stakeholders, and set up architecture tools and methods.' },
+      { id: 'vision', name: 'A: Vision', icon: '👁️', color: '#ef4444', desc: 'Develop architecture vision', details: 'Create a high-level aspirational vision of business value, define stakeholders and concerns, approve statement of architecture work.' },
+      { id: 'business', name: 'B: Business', icon: '💼', color: '#f97316', desc: 'Business Architecture', details: 'Develop baseline and target business architecture, analyze gaps, define roadmap components for business domain.' },
+      { id: 'information', name: 'C: Information', icon: '📊', color: '#84cc16', desc: 'Information Systems', details: 'Develop data and application architectures that support the business architecture.' },
+      { id: 'technology', name: 'D: Technology', icon: '🖥️', color: '#22c55e', desc: 'Technology Architecture', details: 'Develop technology architecture that will form the basis for implementation.' },
+      { id: 'opportunities', name: 'E: Opportunities', icon: '💡', color: '#14b8a6', desc: 'Opportunities & Solutions', details: 'Initial implementation planning, identify delivery vehicles, major work packages.' },
+      { id: 'migration', name: 'F: Migration', icon: '🚚', color: '#06b6d4', desc: 'Migration Planning', details: 'Develop detailed implementation and migration plan, finalize architecture roadmap.' },
+      { id: 'governance', name: 'G: Governance', icon: '⚖️', color: '#3b82f6', desc: 'Implementation Governance', details: 'Provide architectural oversight of implementation, ensure conformance with target architecture.' },
+      { id: 'change', name: 'H: Change', icon: '🔄', color: '#8b5cf6', desc: 'Architecture Change Management', details: 'Ensure architecture lifecycle is maintained, manage changes to architecture in controlled manner.' },
+      { id: 'requirements', name: 'Requirements', icon: '🎯', color: '#ec4899', desc: 'Requirements Management', details: 'Central process managing architecture requirements throughout ADM cycle.' }
+    ];
+
+    // ArchiMate Elements
+    const archimateElements = {
+      business: [
+        { id: 'actor', name: 'Actor', icon: '👤', desc: 'A business entity capable of performing behavior' },
+        { id: 'role', name: 'Role', icon: '🎭', desc: 'Responsibility for specific behavior' },
+        { id: 'process', name: 'Process', icon: '⚙️', desc: 'A sequence of business behaviors' },
+        { id: 'service', name: 'Service', icon: '🎁', desc: 'Externally visible business functionality' },
+        { id: 'event', name: 'Event', icon: '📢', desc: 'Business state change' },
+        { id: 'object', name: 'Object', icon: '📦', desc: 'Passive business element' }
+      ],
+      application: [
+        { id: 'component', name: 'Component', icon: '🧩', desc: 'Modular, deployable software' },
+        { id: 'interface', name: 'Interface', icon: '🔌', desc: 'Access point to application services' },
+        { id: 'appservice', name: 'App Service', icon: '⚡', desc: 'Application functionality exposed' },
+        { id: 'dataobject', name: 'Data Object', icon: '💾', desc: 'Data structured for processing' },
+        { id: 'appfunction', name: 'Function', icon: '🔧', desc: 'Automated behavior' },
+        { id: 'appprocess', name: 'App Process', icon: '🔀', desc: 'Application process flow' }
+      ],
+      technology: [
+        { id: 'node', name: 'Node', icon: '🖥️', desc: 'Computational resource' },
+        { id: 'device', name: 'Device', icon: '📱', desc: 'Physical IT resource' },
+        { id: 'software', name: 'System SW', icon: '💿', desc: 'Software environment' },
+        { id: 'artifact', name: 'Artifact', icon: '📄', desc: 'Piece of data' },
+        { id: 'network', name: 'Network', icon: '🌐', desc: 'Communication medium' },
+        { id: 'path', name: 'Path', icon: '🛤️', desc: 'Communication relation' }
+      ]
+    };
+
+    // Quiz Questions
+    const quizQuestions = [
+      { framework: 'Zachman', q: 'What does the Zachman Framework use to organize architecture?', options: ['6x6 Matrix', 'Circular Cycle', 'Tree Structure', 'Linear Process'], correct: 0 },
+      { framework: 'Zachman', q: 'Which question does the "What" column in Zachman address?', options: ['Data/Entities', 'Functions', 'Locations', 'Time'], correct: 0 },
+      { framework: 'Zachman', q: 'The "Planner" perspective in Zachman represents which viewpoint?', options: ['Executive/Contextual', 'Technical Implementation', 'End User', 'Security'], correct: 0 },
+      { framework: 'TOGAF', q: 'What does ADM stand for in TOGAF?', options: ['Architecture Development Method', 'Application Design Model', 'Advanced Data Management', 'Agile Delivery Method'], correct: 0 },
+      { framework: 'TOGAF', q: 'Which phase creates the Architecture Vision?', options: ['Phase A', 'Phase B', 'Preliminary', 'Phase H'], correct: 0 },
+      { framework: 'TOGAF', q: 'Phase B in TOGAF ADM focuses on?', options: ['Business Architecture', 'Technology Architecture', 'Migration Planning', 'Information Systems'], correct: 0 },
+      { framework: 'TOGAF', q: 'What is at the center of the TOGAF ADM cycle?', options: ['Requirements Management', 'Architecture Vision', 'Technology', 'Governance'], correct: 0 },
+      { framework: 'ArchiMate', q: 'How many main layers does ArchiMate have?', options: ['3', '5', '6', '2'], correct: 0 },
+      { framework: 'ArchiMate', q: 'Which ArchiMate layer uses yellow/gold coloring?', options: ['Business', 'Application', 'Technology', 'Strategy'], correct: 0 },
+      { framework: 'ArchiMate', q: 'ArchiMate is primarily a?', options: ['Modeling Language', 'Development Process', 'Classification Schema', 'Project Management Tool'], correct: 0 }
+    ];
+
+    // Initialize everything
+    function init() {
+      initZachmanMatrix();
+      initTogafWheel();
+      initTogafProgress();
+      initArchimateElements();
+      initQuiz();
+      initTabs();
+    }
+
+    // Tab Navigation
+    function initTabs() {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => switchTab(btn.dataset.tab));
+      });
+    }
+
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.tab === tabId);
+      });
+      document.querySelectorAll('.tab-content').forEach(section => {
+        section.classList.add('hidden');
+      });
+      document.getElementById(`${tabId}-section`).classList.remove('hidden');
+    }
+
+    // Zachman Matrix
+    function initZachmanMatrix() {
+      const matrix = document.getElementById('zachman-matrix');
+      
+      zachmanData.perspectives.forEach((persp, pIdx) => {
+        const row = document.createElement('div');
+        row.className = 'grid grid-cols-7 gap-2 mb-2';
+        
+        // Perspective label
+        const label = document.createElement('div');
+        label.className = `p-2 rounded-lg bg-gradient-to-r ${persp.color} flex items-center gap-2 text-sm font-medium`;
+        label.innerHTML = `<span>${persp.icon}</span><span class="hidden md:inline">${persp.name}</span>`;
+        row.appendChild(label);
+
+        // Cells
+        zachmanData.questions.forEach((q, qIdx) => {
+          const cell = document.createElement('div');
+          const key = `${persp.name}-${q}`;
+          const data = zachmanData.cells[key];
+          const colors = ['bg-yellow-500/20', 'bg-orange-500/20', 'bg-red-500/20', 'bg-pink-500/20', 'bg-purple-500/20', 'bg-indigo-500/20'];
+          
+          cell.className = `zachman-cell p-2 rounded-lg ${colors[qIdx]} border border-transparent hover:border-white/30 text-center text-xs`;
+          cell.innerHTML = `<span class="block truncate" title="${data.title}">${data.title}</span>`;
+          cell.onclick = () => showZachmanInfo(persp, q, data);
+          row.appendChild(cell);
+        });
+
+        matrix.appendChild(row);
+      });
+    }
+
+    function showZachmanInfo(perspective, question, data) {
+      const info = document.getElementById('zachman-info');
+      info.classList.remove('hidden');
+      
+      document.getElementById('zachman-icon').textContent = perspective.icon;
+      document.getElementById('zachman-title').textContent = data.title;
+      document.getElementById('zachman-perspective').textContent = `${perspective.name} perspective × ${question} question`;
+      document.getElementById('zachman-description').textContent = data.desc;
+      document.querySelector('#zachman-example span:last-child').textContent = data.example;
+
+      addPoints(5);
+    }
+
+    // TOGAF Wheel
+    function initTogafWheel() {
+      const wheel = document.getElementById('togaf-wheel');
+      const centerX = 50;
+      const centerY = 50;
+      const radius = 38;
+      
+      // Only show non-requirements phases around the wheel (9 phases)
+      const wheelPhases = togafPhases.filter(p => p.id !== 'requirements');
+      
+      wheelPhases.forEach((phase, i) => {
+        const angle = (i * (360 / wheelPhases.length) - 90) * (Math.PI / 180);
+        const x = centerX + radius * Math.cos(angle);
+        const y = centerY + radius * Math.sin(angle);
+        
+        const el = document.createElement('div');
+        el.className = 'togaf-phase absolute w-14 h-14 md:w-16 md:h-16 rounded-full flex flex-col items-center justify-center cursor-pointer shadow-lg text-xs';
+        el.style.cssText = `
+          left: ${x}%;
+          top: ${y}%;
+          transform: translate(-50%, -50%);
+          background: ${phase.color};
+        `;
+        el.innerHTML = `
+          <span class="text-lg md:text-xl">${phase.icon}</span>
+          <span class="font-bold text-center leading-tight hidden md:block" style="font-size: 9px;">${phase.name.split(':')[0]}</span>
+        `;
+        el.onclick = () => showTogafPhase(phase);
+        wheel.appendChild(el);
+      });
+
+      // Add click handler to center requirements
+      document.querySelector('[data-phase="requirements"]').onclick = () => {
+        showTogafPhase(togafPhases.find(p => p.id === 'requirements'));
+      };
+    }
+
+    function initTogafProgress() {
+      const progress = document.getElementById('togaf-progress');
+      togafPhases.forEach(phase => {
+        const el = document.createElement('div');
+        el.id = `progress-${phase.id}`;
+        el.className = 'h-8 rounded-lg flex items-center justify-center text-lg opacity-30 transition-all';
+        el.style.background = phase.color;
+        el.textContent = phase.icon;
+        progress.appendChild(el);
+      });
+    }
+
+    function showTogafPhase(phase) {
+      const content = document.getElementById('togaf-content');
+      content.innerHTML = `
+        <div class="flex items-start gap-4">
+          <div class="w-16 h-16 rounded-xl flex items-center justify-center text-4xl shrink-0" style="background: ${phase.color}20; border: 2px solid ${phase.color}">
+            ${phase.icon}
+          </div>
+          <div>
+            <h3 class="text-xl font-bold" style="color: ${phase.color}">${phase.name}</h3>
+            <p class="text-slate-400 mb-3">${phase.desc}</p>
+            <p class="text-slate-300">${phase.details}</p>
+          </div>
+        </div>
+      `;
+
+      // Update progress
+      if (!gameState.exploredPhases.has(phase.id)) {
+        gameState.exploredPhases.add(phase.id);
+        document.getElementById(`progress-${phase.id}`).classList.remove('opacity-30');
+        addPoints(10);
+      }
+    }
+
+    // ArchiMate
+    function initArchimateElements() {
+      Object.entries(archimateElements).forEach(([layer, elements]) => {
+        const container = document.getElementById(`${layer}-elements`);
+        const colors = { business: 'yellow', application: 'blue', technology: 'emerald' };
+        
+        elements.forEach(el => {
+          const item = document.createElement('div');
+          item.className = `p-2 bg-${colors[layer]}-500/20 rounded-lg text-center cursor-pointer hover:bg-${colors[layer]}-500/40 transition-colors text-xs`;
+          item.innerHTML = `<span class="text-lg block">${el.icon}</span><span class="truncate block">${el.name}</span>`;
+          item.onclick = () => {
+            addToCanvas(el, layer);
+            showArchimateInfo(el, layer);
+          };
+          container.appendChild(item);
+        });
+      });
+    }
+
+    function addToCanvas(element, layer) {
+      const canvas = document.getElementById('model-canvas');
+      const placeholder = document.getElementById('canvas-placeholder');
+      if (placeholder) placeholder.remove();
+
+      const colors = { business: 'yellow', application: 'blue', technology: 'emerald' };
+      
+      const el = document.createElement('div');
+      el.className = `inline-flex items-center gap-2 px-3 py-2 bg-${colors[layer]}-500/30 border border-${colors[layer]}-500 rounded-lg m-1 text-sm`;
+      el.innerHTML = `<span>${element.icon}</span><span>${element.name}</span>`;
+      canvas.appendChild(el);
+      
+      gameState.canvasElements.push({ ...element, layer });
+      addPoints(5);
+    }
+
+    function clearCanvas() {
+      const canvas = document.getElementById('model-canvas');
+      canvas.innerHTML = '<p id="canvas-placeholder" class="text-center text-slate-500 py-12">Click elements above to add them here!</p>';
+      gameState.canvasElements = [];
+    }
+
+    function showArchimateInfo(element, layer) {
+      const info = document.getElementById('archimate-info');
+      const content = document.getElementById('archimate-content');
+      const colors = { business: 'yellow', application: 'blue', technology: 'emerald' };
+      
+      info.classList.remove('hidden');
+      content.innerHTML = `
+        <div class="flex items-start gap-4">
+          <div class="w-14 h-14 rounded-xl bg-${colors[layer]}-500/20 border-2 border-${colors[layer]}-500 flex items-center justify-center text-3xl shrink-0">
+            ${element.icon}
+          </div>
+          <div>
+            <h3 class="text-lg font-bold text-${colors[layer]}-400">${element.name}</h3>
+            <p class="text-slate-400 capitalize mb-2">${layer} Layer Element</p>
+            <p class="text-slate-300">${element.desc}</p>
+          </div>
+        </div>
+      `;
+    }
+
+    // Quiz
+    let shuffledQuestions = [];
+
+    function initQuiz() {
+      shuffledQuestions = [...quizQuestions].sort(() => Math.random() - 0.5);
+      gameState.currentQuestion = 0;
+      gameState.correctAnswers = 0;
+      gameState.incorrectAnswers = 0;
+      showQuestion();
+    }
+
+    function showQuestion() {
+      if (gameState.currentQuestion >= shuffledQuestions.length) {
+        showQuizResults();
+        return;
+      }
+
+      const q = shuffledQuestions[gameState.currentQuestion];
+      const frameworkColors = { Zachman: 'bg-blue-500', TOGAF: 'bg-purple-500', ArchiMate: 'bg-emerald-500' };
+      
+      document.getElementById('quiz-framework').className = `px-3 py-1 rounded-full text-sm font-medium ${frameworkColors[q.framework]}`;
+      document.getElementById('quiz-framework').textContent = q.framework;
+      document.getElementById('quiz-question').textContent = q.q;
+      
+      const optionsEl = document.getElementById('quiz-options');
+      optionsEl.innerHTML = '';
+      
+      q.options.forEach((opt, i) => {
+        const btn = document.createElement('button');
+        btn.className = 'quiz-option w-full p-4 text-left bg-slate-700/50 border-2 border-slate-600 rounded-xl hover:border-indigo-500 transition-all';
+        btn.innerHTML = `<span class="font-mono text-indigo-400 mr-3">${String.fromCharCode(65 + i)}.</span>${opt}`;
+        btn.onclick = () => selectAnswer(i, q.correct, btn);
+        optionsEl.appendChild(btn);
+      });
+
+      updateQuizProgress();
+    }
+
+    function selectAnswer(selected, correct, btn) {
+      const options = document.querySelectorAll('.quiz-option');
+      options.forEach(opt => {
+        opt.classList.add('disabled');
+        opt.style.pointerEvents = 'none';
+      });
+
+      if (selected === correct) {
+        btn.classList.add('correct');
+        gameState.correctAnswers++;
+        gameState.streak++;
+        if (gameState.streak > gameState.bestStreak) {
+          gameState.bestStreak = gameState.streak;
+        }
+        addPoints(20 + gameState.streak * 5);
+        createConfetti();
+      } else {
+        btn.classList.add('incorrect');
+        options[correct].classList.add('correct');
+        gameState.incorrectAnswers++;
+        gameState.streak = 0;
+      }
+
+      updateStats();
+
+      setTimeout(() => {
+        gameState.currentQuestion++;
+        showQuestion();
+      }, 1500);
+    }
+
+    function updateQuizProgress() {
+      const progress = (gameState.currentQuestion / shuffledQuestions.length) * 100;
+      document.getElementById('quiz-progress-bar').style.width = `${progress}%`;
+      document.getElementById('quiz-count').textContent = `${gameState.currentQuestion}/${shuffledQuestions.length}`;
+    }
+
+    function updateStats() {
+      document.getElementById('correct-count').textContent = gameState.correctAnswers;
+      document.getElementById('incorrect-count').textContent = gameState.incorrectAnswers;
+      document.getElementById('best-streak').textContent = gameState.bestStreak;
+      document.getElementById('streak').textContent = gameState.streak;
+    }
+
+    function showQuizResults() {
+      document.getElementById('quiz-question-area').classList.add('hidden');
+      document.getElementById('quiz-results').classList.remove('hidden');
+      
+      const percentage = Math.round((gameState.correctAnswers / shuffledQuestions.length) * 100);
+      document.getElementById('quiz-score-text').textContent = `You got ${gameState.correctAnswers}/${shuffledQuestions.length} correct (${percentage}%)!`;
+    }
+
+    function restartQuiz() {
+      document.getElementById('quiz-question-area').classList.remove('hidden');
+      document.getElementById('quiz-results').classList.add('hidden');
+      initQuiz();
+    }
+
+    function addPoints(points) {
+      gameState.score += points;
+      const scoreEl = document.getElementById('score');
+      scoreEl.textContent = gameState.score;
+      scoreEl.classList.add('score-pop');
+      setTimeout(() => scoreEl.classList.remove('score-pop'), 500);
+    }
+
+    function createConfetti() {
+      const colors = ['#6366f1', '#8b5cf6', '#ec4899', '#f59e0b', '#22c55e'];
+      for (let i = 0; i < 20; i++) {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti';
+        confetti.style.left = Math.random() * 100 + '%';
+        confetti.style.background = colors[Math.floor(Math.random() * colors.length)];
+        confetti.style.borderRadius = Math.random() > 0.5 ? '50%' : '0';
+        document.body.appendChild(confetti);
+        setTimeout(() => confetti.remove(), 3000);
+      }
+    }
+
+    // Start
+    init();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9d2cce3cc5ecfed4',t:'MTc3MTkxMzQ4Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
